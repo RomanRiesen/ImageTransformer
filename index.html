@@ -6,6 +6,9 @@
   <head>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <meta charset=utf-8>
+    <script async language="javascript" src="js/regl.js"></script>
+    <script language="javascript" src="js/hammer.min.js"></script>
+    <script language="javascript" src="js/gif.js"></script>
   </head>
   <body>
     <div id = "inputDiv">
@@ -22,56 +25,87 @@
       overflow: hidden;
     }
   </style>
-  <script language="javascript" src="js/regl.js"></script>
-  <script language="javascript" src="js/hammer.min.js"></script>
-  <script language="javascript" src="js/gif.js"></script>
+
   <script language="javascript">
 
   const to_rad = r => {return r/180*Math.PI}
-  
-  current_scale = [1,1]
-  current_rotation = 0 //0 to 2PI
-  base_rotation = 0
-  current_panning = [0,0] 
-  base_panning = [0,0] 
+  const touch_pinch_factor = 0.01
+  let current_scale = [1,1]
+  let base_scale = [1,1]
+  let current_rotation = 0 //0 to 2PI
+  let base_rotation = 0
+  let current_panning = [0,0] 
+  let base_panning = [0,0] 
 
   var reglCanvas = document.getElementById('reglCanvas')
   function resizeCanvas() {
-  reglCanvas.width = window.innerWidth
-  reglCanvas.height = window.innerHeight
-  //reglCanvas.style.width = window.innerWidth + "px";
-  //setTimeout(function() {
-    //reglCanvas.style.height = window.innerHeight + "px";
-  //}, 0);
+    reglCanvas.width = window.innerWidth
+    reglCanvas.height = window.innerHeight
   };
+
   window.onresize = resizeCanvas
   resizeCanvas()
 
 
   var hammertime = new Hammer(document.body)
-  //hammertime.get('pan').set({ enable: true, direction: Hammer.DIRECTION_ALL })
+  hammertime.get('pan').set({ enable: true, direction: Hammer.DIRECTION_ALL })
   //hammertime.get('swipe').set({ enable: true, direction: Hammer.DIRECTION_ALL })
   hammertime.get('pinch').set({ enable: true, direction: Hammer.DIRECTION_ALL })
-  //hammertime.get('rotate').set({ enable: true, direction: Hammer.DIRECTION_ALL })
+  hammertime.get('rotate').set({ enable: true, direction: Hammer.DIRECTION_ALL, threshold: 10 })
 
-  var _pinch = new Hammer.Pinch()
-  var _rotate = new Hammer.Rotate()
-  var _pan = new Hammer.Pan()
-  _pinch.recognizeWith(_rotate)
+  var ignore_next_pan = false;
+  //var _pinch = new Hammer.Pinch()
+  //var _rotate = new Hammer.Rotate()
+  //var _pan = new Hammer.Pan()
+  //_pinch.recognizeWith(_rotate)
+  //_pinch.recognizeWith(_pan)
 
   hammertime.on('pan', function(ev) {
-    console.log('pan', ev);
+    //console.log('pan', ev);
+    if(ignore_next_pan) return;
     d = ev.distance
-    current_panning[0] = Math.sin(to_rad(ev.angle))*d
-    current_panning[1] = Math.cos(to_rad(ev.angle))*d
+    current_panning[0] = base_panning[0]+Math.cos(to_rad(ev.angle))*d
+    current_panning[1] = base_panning[1]-Math.sin(to_rad(ev.angle))*d
   });
+
+  hammertime.on('panend', function(ev) {
+    //console.log('pan', ev);
+    if(ignore_next_pan) {ignore_next_pan = false; return;}
+    d = ev.distance
+    base_panning[0] += Math.cos(to_rad(ev.angle))*d
+    base_panning[1] -= Math.sin(to_rad(ev.angle))*d
+  });
+
   hammertime.on('pinchmove', function(ev) {
-    console.log('pinch', ev)
-    current_rotation = ev.angle%360 //IS the angle a delta between events or fixed relative to screen????
+    //console.log('pinch', ev)
+    let out = ev.additionalEvent == "pinchin" ? 1 : -1
+    //current_scale[0] = base_scale[0] + Math.cos(to_rad(ev.angle))*ev.distance/100*out
+    //current_scale[1] = base_scale[1] - Math.sin(to_rad(ev.angle))*ev.distance/100*out
+    current_scale[0] = current_scale[1] = base_scale[0] + ev.distance*touch_pinch_factor*out
   });
+
   hammertime.on('pinchend', function(ev) {
-    console.log('pinch', ev)
-    //base_rotation = ev.angle%360
+    let out = ev.additionalEvent == "pinchin" ? 1 : -1
+    base_scale[0] = base_scale[1] += ev.distance*touch_pinch_factor*out
+    //base_scale[0] += Math.cos(to_rad(ev.angle))*ev.distance/100*out
+    //base_scale[1] += Math.sin(to_rad(ev.angle))*ev.distance/100*out
+    ignore_next_pan = true;
+  });
+
+  hammertime.on('rotatemove', function(ev) {
+    current_rotation = ev.angle
+  });
+
+  hammertime.on('rotateend', function(ev) {
+    base_rotation += ev.angle
+    ignore_next_pan = true;
+  });
+
+
+  window.addEventListener("wheel", event => {
+    let scroll_wheel_factor = 1/30
+    current_scale[0] += Math.sign(event.deltaY)*scroll_wheel_factor
+    current_scale[1] += Math.sign(event.deltaY)*scroll_wheel_factor
   });
 
   var gif = new GIF({workers: 4, quality: 30})
@@ -116,14 +150,7 @@
   }
 
   window.onload = function() {
-      //let imageElement = document.getElementById('inputImage')
-      //img = new Image();
-      //img.src = "Lena512C.bmp";
-      //img.crossOrigin="Anonymous"
-      //img.onload = ()=>{draw(img)}
   }
-
-  //window.onmousedown = (e) => {}
 
   const toggleLoading = function(){
       document.getElementById("loadingSpan").classList.toggle('hidden')
@@ -135,10 +162,19 @@
   let gl = reglCanvas.getContext('webgl', {preserveDrawingBuffer: true})
   var regl = createREGL(gl)
   //var original_texture = regl.texture(img)
+  try {//FIXME instead of failing I shoudl downscale the image!!!
   var new_texture = regl.texture(img)
       new_texture.wrap = 'repeat'
       new_texture.mag = 'nearest'
       new_texture.min = 'nearest'
+  } catch (e) {
+    let max_texture_size = (gl.getParameter(gl.MAX_TEXTURE_SIZE))
+    alert(
+        "Maximal supported image size on this device is"+
+        `${max_texture_size}x${max_texture_size}.\n`+
+        `Your image has size ${img.height}x${img.width}.\n Sorry. Try on a PC.`
+      )
+  }
   //FIXME should set the canvas height/width ratio equal to the one of the loaded image.
 
   const crossPattern = regl({
@@ -150,13 +186,16 @@
       uniform float combineFactor;
       uniform vec2 scale_factor;
       uniform float rotation_factor;
-      uniform vec2 panning_factor;
+      uniform vec2 pan_factor;
 
       uniform vec2 u_resolution;
       uniform sampler2D texture_const;
 
       varying vec2 uv;
-      //const vec2 stretch = vec2(2., 1.);
+
+      //Normalize pan_factor (FIXME maybe do in js part, as is only required once per frame....)
+      vec2 pan = vec2 (pan_factor.x / u_resolution.x,
+                        pan_factor.y / u_resolution.y);
 
       float random (vec2 st) {
         return fract(sin(dot(st.xy,
@@ -174,17 +213,33 @@
       //vec2 from_polar(vec2 a){}
       //vec2 pow(vec2 a, vec2 b){}
 
+      vec2 rotate(vec2 v, float a)
+      {
+        return vec2(
+          cos(a)*v.x - sin(a)*v.y,
+          sin(a)*v.x + cos(a)*v.y
+        );
+      }
+
+      vec2 one_over_z (vec2 in) {
+        return divide(vec2(1,0), coord);
+      } 
+
       void main() {
-          vec2 coord = vec2(uv.x*4.-2., uv.y*2.-1.);
-          vec2 final_coord = product(coord, coord)
-            + vec2(mod(-combineFactor/2., 2.*3.14*10.), 0);
+          vec2 pan_coord = pan+uv;
+          pan_coord *= scale_factor;
+          vec2 coord = vec2(pan_coord.x*pan_coord.x, pan_coord.y*pan_coord.y);
+          //vec2 final_coord = product(coord, coord)
+            //+ vec2(mod(-combineFactor/2., 2.*3.14*10.), 0);
+            //+ vec2(mod(-1./2., 2.*3.14*10.), 0);
+
+          vec2 final_coord = divide(vec2(1,0), coord);
 
           //rotate the final_coords according to the rotation_factor
-          final_coord.x = cos(rotation_factor)*final_coord.x - sin(rotation_factor)*final_coord.y;
-          final_coord.y = -sin(rotation_factor)*final_coord.x + cos(rotation_factor)*final_coord.y;
+          final_coord = rotate(final_coord, rotation_factor);
           gl_FragColor = texture2D(texture_const,
               vec2(
-                mod(final_coord.x-2., 1.),
+                mod(final_coord.x, 1.),
                 mod(final_coord.y, 1.))
             );
       }`,
@@ -217,9 +272,9 @@
     uniforms: {
       // This defines the color of the triangle to be a dynamic variable
       combineFactor: regl.prop('combineFactor'),
-      scale_factor: current_scale,
+      scale_factor: regl.prop('scale_factor'),
       rotation_factor: regl.prop('rotation_factor'),
-      panning_factor: current_panning,
+      pan_factor: regl.prop('pan_factor'),
       //These 2 should be made const...
       u_resolution: regl.prop('u_resolution'),
       texture_const: new_texture,
@@ -232,7 +287,7 @@
 
 
   var fps60Gif = false;
-  var to_gif = true;
+  var to_gif = false;
   var i = 0
   var max_i = 5;//Math.floor(Math.PI*60)
   regl.frame(({time}) => {
@@ -251,7 +306,9 @@
       combineFactor: time+Math.PI/2,
       u_resolution: [reglCanvas.width, reglCanvas.height], //not 100% correct
       color: [ col, col, col, 1 ],
-      rotation_factor: (current_rotation + base_rotation)/180*3.1415
+      rotation_factor: to_rad(current_rotation + base_rotation),
+      pan_factor: (current_panning),
+      scale_factor: current_scale //current_scale.map(x => {return x*x}) //really bad idea on mobile..
     })
 
     if (to_gif && i++ < max_i && (i%2 == 0 && !fps60Gif || fps60Gif))
