@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<meta 
+     content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
+/>
+<html>
+  <head>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+    <meta charset=utf-8>
+  </head>
+  <body>
+    <div id = "inputDiv">
+        <input type="file" accept="image/*" class="inputfile" onchange="fileSelected(event)"/>
+        <span id="loadingSpan" class="hidden" hidden>Loading...</span>
+    </div>
+    <canvas id="reglCanvas"> </canvas>
+    <canvas id="gifCanvas" hidden> </canvas>
+    <img id="gifResult"></img>
+  </body>
+  <style>
+    body{
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+  <script language="javascript" src="js/regl.js"></script>
+  <script language="javascript" src="js/hammer.min.js"></script>
+  <script language="javascript" src="js/gif.js"></script>
+  <script language="javascript">
+
+  const to_rad = r => {return r/180*Math.PI}
+  
+  current_scale = [1,1]
+  current_rotation = 0 //0 to 2PI
+  base_rotation = 0
+  current_panning = [0,0] 
+  base_panning = [0,0] 
+
+  var reglCanvas = document.getElementById('reglCanvas')
+  function resizeCanvas() {
+  reglCanvas.width = window.innerWidth
+  reglCanvas.height = window.innerHeight
+  //reglCanvas.style.width = window.innerWidth + "px";
+  //setTimeout(function() {
+    //reglCanvas.style.height = window.innerHeight + "px";
+  //}, 0);
+  };
+  window.onresize = resizeCanvas
+  resizeCanvas()
+
+
+  var hammertime = new Hammer(document.body)
+  //hammertime.get('pan').set({ enable: true, direction: Hammer.DIRECTION_ALL })
+  //hammertime.get('swipe').set({ enable: true, direction: Hammer.DIRECTION_ALL })
+  hammertime.get('pinch').set({ enable: true, direction: Hammer.DIRECTION_ALL })
+  //hammertime.get('rotate').set({ enable: true, direction: Hammer.DIRECTION_ALL })
+
+  var _pinch = new Hammer.Pinch()
+  var _rotate = new Hammer.Rotate()
+  var _pan = new Hammer.Pan()
+  _pinch.recognizeWith(_rotate)
+
+  hammertime.on('pan', function(ev) {
+    console.log('pan', ev);
+    d = ev.distance
+    current_panning[0] = Math.sin(to_rad(ev.angle))*d
+    current_panning[1] = Math.cos(to_rad(ev.angle))*d
+  });
+  hammertime.on('pinchmove', function(ev) {
+    console.log('pinch', ev)
+    current_rotation = ev.angle%360 //IS the angle a delta between events or fixed relative to screen????
+  });
+  hammertime.on('pinchend', function(ev) {
+    console.log('pinch', ev)
+    //base_rotation = ev.angle%360
+  });
+
+  var gif = new GIF({workers: 4, quality: 30})
+  gif.on('finished', function(blob) {
+    window.open(URL.createObjectURL(blob));
+    document.getElementById("gifResult").src = URL.createObjectURL(blob)
+    console.log("Done giffing!")
+  });
+  gif.on('progress', function(p) {console.log(`${p*100}%`)})
+
+
+  function addGifFrame(dt, regl){
+    var width = reglCanvas.width
+    var height = reglCanvas.height
+    var data = regl.read({//This requires preserveDrawingBuffer and is thus pretty slow. Should figure out correct way! maybe use regl._gl
+      x: 0,
+      y: 0,
+      width: width,
+      height: height,
+      data: new Uint8Array(width*height*4)
+    })
+    var canv2d = document.getElementById('gifCanvas')
+    var context = canv2d.getContext('2d')
+    canv2d.width = width
+    canv2d.height = height
+    var imageData = context.createImageData(width, height)
+    imageData.data.set(data);
+    context.putImageData(imageData, 0, 0)
+    gif.addFrame(canv2d, {copy: true, delay: dt})
+  }
+
+  const fileSelected = function(e) {
+      const file = e.target.files[0]
+      let reader = new FileReader()
+      let img = new Image()
+
+      reader.readAsDataURL(file)
+      reader.onload = e => {img.src = e.target.result}
+      toggleLoading()
+      const t = Date.now()
+      img.onload = ()=>{draw(img), console.log((Date.now()-t)/1000), toggleLoading()}
+  }
+
+  window.onload = function() {
+      //let imageElement = document.getElementById('inputImage')
+      //img = new Image();
+      //img.src = "Lena512C.bmp";
+      //img.crossOrigin="Anonymous"
+      //img.onload = ()=>{draw(img)}
+  }
+
+  //window.onmousedown = (e) => {}
+
+  const toggleLoading = function(){
+      document.getElementById("loadingSpan").classList.toggle('hidden')
+  }
+
+  const draw = (img) =>
+  {
+  // Calling regl() creates a new partially evaluated draw command
+  let gl = reglCanvas.getContext('webgl', {preserveDrawingBuffer: true})
+  var regl = createREGL(gl)
+  //var original_texture = regl.texture(img)
+  var new_texture = regl.texture(img)
+      new_texture.wrap = 'repeat'
+      new_texture.mag = 'nearest'
+      new_texture.min = 'nearest'
+  //FIXME should set the canvas height/width ratio equal to the one of the loaded image.
+
+  const crossPattern = regl({
+  
+    // Shaders in regl are just strings.  You can use glslify or whatever you want
+    // to define them.  No need to manually create shader objects.
+    frag: `
+      precision mediump float; //FIXME should use regl attribute and not uniform
+      uniform float combineFactor;
+      uniform vec2 scale_factor;
+      uniform float rotation_factor;
+      uniform vec2 panning_factor;
+
+      uniform vec2 u_resolution;
+      uniform sampler2D texture_const;
+
+      varying vec2 uv;
+      //const vec2 stretch = vec2(2., 1.);
+
+      float random (vec2 st) {
+        return fract(sin(dot(st.xy,
+          vec2(12.9898,78.233)))*
+          43758.5453123);
+      }
+
+      //FIXME more operations and should be normal functions!!
+      #define product(a, b) vec2(a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x)
+      #define conjugate(a) vec2(a.x,-a.y)
+      #define divide(a, b) vec2(((a.x*b.x+a.y*b.y)/(b.x*b.x+b.y*b.y)),((a.y*b.x-a.x*b.y)/(b.x*b.x+b.y*b.y)))
+
+      //TODO:
+      //vec2 to_polar(vec2 a){}
+      //vec2 from_polar(vec2 a){}
+      //vec2 pow(vec2 a, vec2 b){}
+
+      void main() {
+          vec2 coord = vec2(uv.x*4.-2., uv.y*2.-1.);
+          vec2 final_coord = product(coord, coord)
+            + vec2(mod(-combineFactor/2., 2.*3.14*10.), 0);
+
+          //rotate the final_coords according to the rotation_factor
+          final_coord.x = cos(rotation_factor)*final_coord.x - sin(rotation_factor)*final_coord.y;
+          final_coord.y = -sin(rotation_factor)*final_coord.x + cos(rotation_factor)*final_coord.y;
+          gl_FragColor = texture2D(texture_const,
+              vec2(
+                mod(final_coord.x-2., 1.),
+                mod(final_coord.y, 1.))
+            );
+      }`,
+  
+    vert: `
+      precision mediump float;
+      attribute vec2 position;
+      varying vec2 uv;
+      void main () {
+        uv = position;
+        gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
+      }`,
+  
+    // Here we define the vertex attributes for the above shader
+    attributes: {
+      // regl.buffer creates a new array buffer object
+      position: regl.buffer([
+        // no need to flatten nested arrays, regl automatically
+        // unrolls them into a typedarray (default Float32)
+        [-1, -1],   
+        [-1, 1],
+        [1, -1],    
+        [1, -1],
+        [1,  1],
+        [-1, 1],
+      ])
+      // regl automatically infers sane defaults for the vertex attribute pointers
+    },
+  
+    uniforms: {
+      // This defines the color of the triangle to be a dynamic variable
+      combineFactor: regl.prop('combineFactor'),
+      scale_factor: current_scale,
+      rotation_factor: regl.prop('rotation_factor'),
+      panning_factor: current_panning,
+      //These 2 should be made const...
+      u_resolution: regl.prop('u_resolution'),
+      texture_const: new_texture,
+    },
+  
+    // This tells regl the number of vertices to draw in this command
+    count: 6
+  })
+
+
+
+  var fps60Gif = false;
+  var to_gif = true;
+  var i = 0
+  var max_i = 5;//Math.floor(Math.PI*60)
+  regl.frame(({time}) => {
+    // clear contents of the drawing buffer
+    //patch the GIF.JS to use https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/readPixels
+    //if ctx is webgl/2
+
+    regl.clear({
+      color: [1, 0.5, 0, 0],
+      depth: 1
+    })
+  
+    // draw a triangle using the command defined above
+    col = Math.random();
+    crossPattern({
+      combineFactor: time+Math.PI/2,
+      u_resolution: [reglCanvas.width, reglCanvas.height], //not 100% correct
+      color: [ col, col, col, 1 ],
+      rotation_factor: (current_rotation + base_rotation)/180*3.1415
+    })
+
+    if (to_gif && i++ < max_i && (i%2 == 0 && !fps60Gif || fps60Gif))
+    {
+      addGifFrame(fps60Gif ? 16 : 32, regl)
+    }
+    if(i == max_i)
+    {
+      console.log("Start giffing...")
+      gif.render();
+    }})}
+  </script>
+</html>
