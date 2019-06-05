@@ -32,7 +32,7 @@
 
 
   const to_rad = r => {return r/180*Math.PI}
-  const touch_pinch_factor = 0.01
+  const touch_pinch_factor = 1
   let current_scale = [1,1]
   let base_scale = [1,1]
   let current_rotation = 0 //0 to 2PI
@@ -64,7 +64,6 @@
   //_pinch.recognizeWith(_pan)
 
   hammertime.on('pan', function(ev) {
-    //console.log('pan', ev);
     if(ignore_next_pan) return;
     d = ev.distance
     current_panning[0] = base_panning[0]+Math.cos(to_rad(ev.angle))*d
@@ -72,34 +71,20 @@
   });
 
   hammertime.on('panend', function(ev) {
-    //console.log('pan', ev);
     if(ignore_next_pan) {ignore_next_pan = false; return;}
     d = ev.distance
     base_panning[0] += Math.cos(to_rad(ev.angle))*d
     base_panning[1] -= Math.sin(to_rad(ev.angle))*d
   });
 
-  const calculate_scale_from_pinch = (ev) => {
-    //FIXME should include diagonal max dist in calculations...
-    var out
-    if( ev.additionalEvent == "pinchin" )
-    {//1
-      out = ev.distance*touch_pinch_factor
-    }
-    else
-    {//-1
-      out = 1/(ev.distance*touch_pinch_factor)
-    }
-  }
-
   hammertime.on('pinchmove', function(ev) {
-    //console.log('pinch', ev)
-    current_scale[0] = base_scale[0]
-    current_scale[1] = current_scale[0] *= calculate_scale_from_pinch(ev);
+    current_scale[0] = base_scale[0] * 1/ev.scale
+    current_scale[1] = base_scale[1] * 1/ev.scale
+    console.log(current_scale)
   });
 
   hammertime.on('pinchend', function(ev) {
-    base_scale[0] = base_scale[1] *= current_scale[0];
+    base_scale[0] = base_scale[1] *= 1/ev.scale
     ignore_next_pan = true;
   });
 
@@ -308,7 +293,7 @@
     .addDropDown("Type", Object.keys(vertex_shader.transformer_dict), (e) => {draw(img);})
     .addRange("Strength", 0, 1, 1, 0.01, e => {})
     .addNumber("Split Radially", 0, 1/0, 0, 1, e => {})
-    .addButton("Reset Zoom", () => {base_scale = [1,1]; current_scale = [1,1]; current_panning = [0,0]})
+    .addButton("Reset Zoom", () => {base_scale = [1,1]; current_scale = [1,1]; base_panning = [0,0]; current_panning = [0,0]})
     .addDropDown("style", [
           "default",
 					"white",
