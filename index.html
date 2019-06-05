@@ -2,19 +2,24 @@
 <meta 
      content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
 />
-<html>
+<html lang="en">
+  <title>Image Transformer</title>
   <head>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <meta charset=utf-8>
-    <link rel="stylesheet" id="quicksettings_style" href="css/quicksettings.css">
-    <link rel="stylesheet" href="style.css">
-    <script language="javascript" src="js/regl.min.js"></script>
-    <script language="javascript" src="transformer_shaders.js"></script>
-    <script language="javascript" src="js/quicksettings.min.js"></script>
-    <script language="javascript" src="js/hammer.min.js"></script>
-    <script language="javascript" src="js/gif.js"></script>
+    <meta name="Description" content="Tool to play around with conformal mappings and images to create funny pictures and distortions.">
+    <meta name="theme-color" content="#FFA500"/>
+    <link rel="manifest" href="/manifest.json">
+    <link async rel="stylesheet" id="quicksettings_style" href="css/quicksettings.css">
+    <link async rel="stylesheet" href="style.css">
+    <script async language="javascript" src="js/regl.min.js"></script>
+    <script async language="javascript" src="transformer_shaders.js"></script>
+    <script async language="javascript" src="js/quicksettings.min.js"></script>
+    <script async language="javascript" src="js/hammer.min.js"></script>
+    <script async language="javascript" src="js/gif.js"></script>
   </head>
   <body>
+    <noscript><h1>Javascript is required!</h1></noscript>
 
     <canvas id="reglCanvas"> </canvas>
     <canvas id="gifCanvas" hidden> </canvas>
@@ -22,6 +27,9 @@
   </body>
 
   <script language="javascript">
+
+window.onload = () =>{
+
 
   const to_rad = r => {return r/180*Math.PI}
   const touch_pinch_factor = 0.01
@@ -71,19 +79,27 @@
     base_panning[1] -= Math.sin(to_rad(ev.angle))*d
   });
 
+  const calculate_scale_from_pinch = (ev) => {
+    //FIXME should include diagonal max dist in calculations...
+    var out
+    if( ev.additionalEvent == "pinchin" )
+    {//1
+      out = ev.distance*touch_pinch_factor
+    }
+    else
+    {//-1
+      out = 1/(ev.distance*touch_pinch_factor)
+    }
+  }
+
   hammertime.on('pinchmove', function(ev) {
     //console.log('pinch', ev)
-    let out = ev.additionalEvent == "pinchin" ? 1 : -1
-    //current_scale[0] = base_scale[0] + Math.cos(to_rad(ev.angle))*ev.distance/100*out
-    //current_scale[1] = base_scale[1] - Math.sin(to_rad(ev.angle))*ev.distance/100*out
-    current_scale[0] = current_scale[1] = base_scale[0] + ev.distance*touch_pinch_factor*out
+    current_scale[0] = base_scale[0]
+    current_scale[1] = current_scale[0] *= calculate_scale_from_pinch(ev);
   });
 
   hammertime.on('pinchend', function(ev) {
-    let out = ev.additionalEvent == "pinchin" ? 1 : -1
-    base_scale[0] = base_scale[1] += ev.distance*touch_pinch_factor*out
-    //base_scale[0] += Math.cos(to_rad(ev.angle))*ev.distance/100*out
-    //base_scale[1] += Math.sin(to_rad(ev.angle))*ev.distance/100*out
+    base_scale[0] = base_scale[1] *= current_scale[0];
     ignore_next_pan = true;
   });
 
@@ -148,16 +164,20 @@
 
   const change_style = e =>
   {
+    //wowoowww
     var styleTag = document.getElementById("quicksettings_style");
-	  //if(e.value === "white") {
-		  //styleTag.href = "css/quicksettings.css";
-	  //}
-	  //else {
+	  if(e.value === "default") {
+		  styleTag.href = "css/quicksettings.css";
+	  }
+	  else {
       styleTag.href = "css/quicksettings_" + e.value + ".css";
       if(e.value.includes("tiny"))
-        settings.setSize("80","")
-      else settings.setSize("120","")
-	  //}
+      {
+        settings.setWidth("80")
+        return
+      }
+	  }
+   settings.setSize("120","")
   }
 
   const toggleLoading = function(){
@@ -290,6 +310,7 @@
     .addNumber("Split Radially", 0, 1/0, 0, 1, e => {})
     .addButton("Reset Zoom", () => {base_scale = [1,1]; current_scale = [1,1]; current_panning = [0,0]})
     .addDropDown("style", [
+          "default",
 					"white",
 					"black",
 					"tiny_white",
@@ -298,5 +319,6 @@
     
     change_style({"value":"white"})
     //window.onblur = ()=> {settings.saveInLocalStorage("settings");}
-  </script>
+}
+</script>
 </html>
