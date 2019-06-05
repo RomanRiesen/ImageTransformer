@@ -6,7 +6,7 @@
   <head>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <meta charset=utf-8>
-    <link rel="stylesheet" id="quicksettingsStyle" href="css/quicksettings.css">
+    <link rel="stylesheet" id="quicksettings_style" href="css/quicksettings.css">
     <script async language="javascript" src="js/regl.min.js"></script>
     <script language="javascript" src="js/quicksettings.min.js"></script>
     <script language="javascript" src="js/hammer.min.js"></script>
@@ -224,8 +224,8 @@
 
   const change_style = e =>
   {
-    var styleTag = document.getElementById("quicksettingsStyle");
-	  if(e.value === "defaultStyle") {
+    var styleTag = document.getElementById("quicksettings_style");
+	  if(e.value === "default") {
 		  styleTag.href = "css/quicksettings.css";
 	  }
 	  else {
@@ -268,6 +268,7 @@
       uniform vec2 scale_factor;
       uniform float rotation_factor;
       uniform vec2 pan_factor;
+      uniform float radial_splits;
 
       uniform vec2 u_resolution;
       uniform sampler2D texture_const;
@@ -370,7 +371,8 @@
         //vec2 pol = to_polar(one_over_z(coord));
         //pol.y = mod(pol.y, PI/(pow(2., combineFactor/50.)));
 
-        final_coord = phi_mod(final_coord, PI*2./4.);
+        if(radial_splits > 0.)
+          final_coord = phi_mod(final_coord, PI/radial_splits);
 
         //rotate the final_coords according to the rotation_factor
         //final_coord = rotate(final_coord, rotation_factor);
@@ -419,6 +421,7 @@
       pan_factor: regl.prop('pan_factor'),
       //These 2 should be made const...
       u_resolution: regl.prop('u_resolution'),
+      radial_splits: regl.prop('radial_splits'),
       texture_const: new_texture,
     },
   
@@ -450,7 +453,8 @@
       color: [ col, col, col, 1 ],
       rotation_factor: to_rad(current_rotation + base_rotation),
       pan_factor: (current_panning),
-      scale_factor: current_scale //current_scale.map(x => {return x*x}) //really bad idea on mobile..
+      scale_factor: current_scale, //current_scale.map(x => {return x*x}) //really bad idea on mobile..
+      radial_splits: settings.getValue("Split Radially")
     })
 
     if (to_gif && i++ < max_i && (i%2 == 0 && !fps60Gif || fps60Gif))
@@ -464,23 +468,30 @@
     }})}
 
 
-    //QuickSettings.useExtStyleSheet()
-    var settings = QuickSettings.create(0, 0, "Settings", document.body);
-    settings.addHTML("File:", 
+    QuickSettings.useExtStyleSheet()
+    var settings = QuickSettings.create(0, 0, "Settings", document.body)
+    .setSize("120","")
+    .addHTML("File:",
         "<input id='imageInput' type='file' accept='image/*' class='inputfile' onchange='fileSelected(event)'/>"+
         "<label for='imageInput'>Select Image!</label>"+
         "<span id='loadingSpan' hidden>Loading...</span>"
     )
-    settings.addRange("Strength", 0, 1, 1, 0.01, e => {});
-    settings.addNumber("Split Radially", 0, 1/0, 0, 1, e => {});
-    settings.setSize("100","")
-    settings.addDropDown("style", [
-					"defaultStyle",
+    .addDropDown("Type", [
+      "Z^-2",
+      "Z^-1",
+      "sqrt(Z)"
+    ], undefined)
+    .addRange("Strength", 0, 1, 1, 0.01, e => {})
+    .addNumber("Split Radially", 0, 1/0, 0, 1, e => {})
+    .addDropDown("style", [
+					"default",
 					"black",
 					"white",
 					"tiny",
 					"tiny_white",
 					"tiny_black"
-				], change_style)
+        ], change_style)
+    
+    change_style({"value":"default"})
   </script>
 </html>
