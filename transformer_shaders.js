@@ -11,6 +11,9 @@ let vertex_shader = {
         "1/Z":"one_over_z(coord)",
         "1/Z^2":"one_over_z_squared(coord)",
         "sqrt(2/Z)":"nth_root(divide(vec2(2,0), coord), 2.)",
+        "cos(Z)":"cosC(coord)",
+        //"sin(Z)":"sinC(coord)",
+        "id":"(coord)",
     },
 
     get: function(key) {

@@ -1,0 +1,61 @@
+
+    .inputfile{
+      width: 0.1px;
+	    height: 0.1px;
+	    opacity: 0;
+	    overflow: hidden;
+	    position: absolute;
+	    z-index: -1;  
+    }
+
+    .inputfile:focus + label,
+    .inputfile + label:hover {
+      background-color: orange;
+    }
+
+    .inputfile + label{
+      margin: auto;
+      border: solid;
+      border-color: darkgray;
+      cursor: pointer;
+      display: inline-block;
+      background-color: white;
+      padding: 5px;
+    }
+
+    .inputfile:focus + label {
+	    outline: 1px dotted #000;
+	    outline: -webkit-focus-ring-color auto 5px;
+    }
+
+    .slider {
+      margin: auto;
+    }
+
+    .input_container {
+      border: solid;
+      border-color: darkgray;
+      border-radius: 10px;
+      padding: 5px;
+      background: white;
+    }
+
+    #inputDiv{
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: rgba(200, 200, 200, 0.8);
+      padding: 5px;
+    }
+
+    #reglCanvvas{
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    body{
+      margin: 0;
+      overflow: hidden;
+    }

@@ -7,6 +7,7 @@
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <meta charset=utf-8>
     <link rel="stylesheet" id="quicksettings_style" href="css/quicksettings.css">
+    <link rel="stylesheet" href="style.css">
     <script language="javascript" src="js/regl.min.js"></script>
     <script language="javascript" src="transformer_shaders.js"></script>
     <script language="javascript" src="js/quicksettings.min.js"></script>
@@ -16,89 +17,9 @@
   <body>
 
     <canvas id="reglCanvas"> </canvas>
-    <!--
-    <div id = "inputDiv">
-        <input id="imageInput" type="file" accept="image/*" class="inputfile" onchange="fileSelected(event)"/>
-        <label for="imageInput">Select Image!</label>
-        <span class="input_container">
-          <span>Type: </span>
-          <span>Z^-2</span>
-        </span>
-        <span class="input_container">
-          <span>Strength: </span>
-          <input class="slider" type="range"  min = "0", max = "1" value="1" step="0.01" name="Strength" id="combineRangeInput"/> 
-        </span>
-        <span class="input_container">
-          <input type="number" name="split_radially" value="0">Rotation Splits<br>
-        </span>
-    </div>
-    -->
-
     <canvas id="gifCanvas" hidden> </canvas>
     <img id="gifResult"></img>
   </body>
-  <style>
-    .inputfile{
-      width: 0.1px;
-	    height: 0.1px;
-	    opacity: 0;
-	    overflow: hidden;
-	    position: absolute;
-	    z-index: -1;  
-    }
-
-    .inputfile:focus + label,
-    .inputfile + label:hover {
-      background-color: orange;
-    }
-
-    .inputfile + label{
-      margin: auto;
-      border: solid;
-      border-color: darkgray;
-      cursor: pointer;
-      display: inline-block;
-      background-color: white;
-      padding: 5px;
-    }
-
-    .inputfile:focus + label {
-	    outline: 1px dotted #000;
-	    outline: -webkit-focus-ring-color auto 5px;
-    }
-
-    .slider {
-      margin: auto;
-    }
-
-    .input_container {
-      border: solid;
-      border-color: darkgray;
-      border-radius: 10px;
-      padding: 5px;
-      background: white;
-    }
-
-    #inputDiv{
-      display: block;
-      position: absolute;
-      top: 0;
-      left: 0;
-      background: rgba(200, 200, 200, 0.8);
-      padding: 5px;
-    }
-
-    #reglCanvvas{
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    body{
-      margin: 0;
-      overflow: hidden;
-    }
-  </style>
 
   <script language="javascript">
 
@@ -228,12 +149,15 @@
   const change_style = e =>
   {
     var styleTag = document.getElementById("quicksettings_style");
-	  if(e.value === "default") {
-		  styleTag.href = "css/quicksettings.css";
-	  }
-	  else {
-		  styleTag.href = "css/quicksettings_" + e.value + ".css";
-	  }
+	  //if(e.value === "white") {
+		  //styleTag.href = "css/quicksettings.css";
+	  //}
+	  //else {
+      styleTag.href = "css/quicksettings_" + e.value + ".css";
+      if(e.value.includes("tiny"))
+        settings.setSize("80","")
+      else settings.setSize("120","")
+	  //}
   }
 
   const toggleLoading = function(){
@@ -242,6 +166,10 @@
 
   const draw = (img) =>
   {
+  if(img.height == 0)
+    return
+  
+  regl = createREGL(gl)
   //var original_texture = regl.texture(img)
   try {//FIXME instead of failing I shoudl downscale the image!!!
   var new_texture = regl.texture(img)
@@ -258,8 +186,6 @@
   }
   //FIXME should set the canvas height/width ratio equal to the one of the loaded image.
 
-
-  console.log(vertex_shader)
 
   const crossPattern = regl({
   
@@ -353,24 +279,24 @@
 
     QuickSettings.useExtStyleSheet()
     var settings = QuickSettings.create(0, 0, "Settings", document.body)
-    .setSize("120","")
+    //.setGlobalChangeHandler(()=>(settings.saveInLocalStorage("settings")))
     .addHTML("File:",
         "<input id='imageInput' type='file' accept='image/*' class='inputfile' onchange='fileSelected(event)'/>"+
         "<label for='imageInput'>Select Image!</label>"+
         "<span id='loadingSpan' hidden>Loading...</span>"
     )
-    .addDropDown("Type", Object.keys(vertex_shader.transformer_dict), (e) => {regl = createREGL(gl); draw(img);})
+    .addDropDown("Type", Object.keys(vertex_shader.transformer_dict), (e) => {draw(img);})
     .addRange("Strength", 0, 1, 1, 0.01, e => {})
     .addNumber("Split Radially", 0, 1/0, 0, 1, e => {})
+    .addButton("Reset Zoom", () => {base_scale = [1,1]; current_scale = [1,1]; current_panning = [0,0]})
     .addDropDown("style", [
-					"default",
-					"black",
 					"white",
-					"tiny",
+					"black",
 					"tiny_white",
 					"tiny_black"
         ], change_style)
     
-    change_style({"value":"default"})
+    change_style({"value":"white"})
+    //window.onblur = ()=> {settings.saveInLocalStorage("settings");}
   </script>
 </html>
