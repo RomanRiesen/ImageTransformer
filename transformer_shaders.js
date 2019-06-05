@@ -14,7 +14,7 @@ let vertex_shader = {
     },
 
     get: function(key) {
-        return this.base.replace(this._replace_string, this.transformer_dict[key])
+        return this._base.replace(this._replace_string, this.transformer_dict[key])
     },
 
     _setup: async function() {
