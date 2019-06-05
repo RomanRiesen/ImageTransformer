@@ -6,16 +6,19 @@
   <head>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <meta charset=utf-8>
+    <link rel="stylesheet" id="quicksettingsStyle" href="css/quicksettings.css">
     <script async language="javascript" src="js/regl.min.js"></script>
+    <script language="javascript" src="js/quicksettings.min.js"></script>
     <script language="javascript" src="js/hammer.min.js"></script>
     <script language="javascript" src="js/gif.js"></script>
   </head>
   <body>
+
     <canvas id="reglCanvas"> </canvas>
+    <!--
     <div id = "inputDiv">
         <input id="imageInput" type="file" accept="image/*" class="inputfile" onchange="fileSelected(event)"/>
         <label for="imageInput">Select Image!</label>
-        <span id="loadingSpan" hidden>Loading...</span>
         <span class="input_container">
           <span>Type: </span>
           <span>Z^-2</span>
@@ -24,7 +27,11 @@
           <span>Strength: </span>
           <input class="slider" type="range"  min = "0", max = "1" value="1" step="0.01" name="Strength" id="combineRangeInput"/> 
         </span>
+        <span class="input_container">
+          <input type="number" name="split_radially" value="0">Rotation Splits<br>
+        </span>
     </div>
+    -->
 
     <canvas id="gifCanvas" hidden> </canvas>
     <img id="gifResult"></img>
@@ -215,6 +222,17 @@
       img.onload = ()=>{draw(img), console.log((Date.now()-t)/1000), toggleLoading()}
   }
 
+  const change_style = e =>
+  {
+    var styleTag = document.getElementById("quicksettingsStyle");
+	  if(e.value === "defaultStyle") {
+		  styleTag.href = "css/quicksettings.css";
+	  }
+	  else {
+		  styleTag.href = "css/quicksettings_" + e.value + ".css";
+	  }
+  }
+
   const toggleLoading = function(){
       document.getElementById("loadingSpan").toggleAttribute("hidden")
   }
@@ -352,7 +370,7 @@
         //vec2 pol = to_polar(one_over_z(coord));
         //pol.y = mod(pol.y, PI/(pow(2., combineFactor/50.)));
 
-        final_coord = phi_mod(final_coord, PI/4.);
+        final_coord = phi_mod(final_coord, PI*2./4.);
 
         //rotate the final_coords according to the rotation_factor
         //final_coord = rotate(final_coord, rotation_factor);
@@ -427,7 +445,7 @@
     // draw a triangle using the command defined above
     col = Math.random();
     crossPattern({
-      combine_factor: parseFloat(document.getElementById("combineRangeInput").value),
+      combine_factor: settings.getValue("Strength"),//parseFloat(document.getElementById("combineRangeInput").value),
       u_resolution: [reglCanvas.width, reglCanvas.height], //not 100% correct
       color: [ col, col, col, 1 ],
       rotation_factor: to_rad(current_rotation + base_rotation),
@@ -444,5 +462,25 @@
       console.log("Start giffing...")
       gif.render();
     }})}
+
+
+    //QuickSettings.useExtStyleSheet()
+    var settings = QuickSettings.create(0, 0, "Settings", document.body);
+    settings.addHTML("File:", 
+        "<input id='imageInput' type='file' accept='image/*' class='inputfile' onchange='fileSelected(event)'/>"+
+        "<label for='imageInput'>Select Image!</label>"+
+        "<span id='loadingSpan' hidden>Loading...</span>"
+    )
+    settings.addRange("Strength", 0, 1, 1, 0.01, e => {});
+    settings.addNumber("Split Radially", 0, 1/0, 0, 1, e => {});
+    settings.setSize("100","")
+    settings.addDropDown("style", [
+					"defaultStyle",
+					"black",
+					"white",
+					"tiny",
+					"tiny_white",
+					"tiny_black"
+				], change_style)
   </script>
 </html>
