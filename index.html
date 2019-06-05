@@ -7,7 +7,7 @@
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <meta charset=utf-8>
     <link rel="stylesheet" id="quicksettings_style" href="css/quicksettings.css">
-    <script async language="javascript" src="js/regl.min.js"></script>
+    <script language="javascript" src="js/regl.min.js"></script>
     <script language="javascript" src="transformer_shaders.js"></script>
     <script language="javascript" src="js/quicksettings.min.js"></script>
     <script language="javascript" src="js/hammer.min.js"></script>
@@ -177,9 +177,11 @@
 
 
   window.addEventListener("wheel", event => {
-    let scroll_wheel_factor = 1/30
-    current_scale[0] += Math.sign(event.deltaY)*scroll_wheel_factor
-    current_scale[1] += Math.sign(event.deltaY)*scroll_wheel_factor
+    let scroll_wheel_factor = 1/1.05
+    let change = event.deltaY < 0 ? scroll_wheel_factor : 1/scroll_wheel_factor
+    current_scale[0] *= change
+    current_scale[1] *= change
+    console.log(current_scale[0])
   });
 
   var gif = new GIF({workers: 4, quality: 30})
@@ -212,14 +214,14 @@
   }
 
   const fileSelected = function(e) {
+      const t = Date.now()
       const file = e.target.files[0]
+      img = new Image()
       let reader = new FileReader()
-      let img = new Image()
 
       reader.readAsDataURL(file)
       reader.onload = e => {img.src = e.target.result}
       toggleLoading()
-      const t = Date.now()
       img.onload = ()=>{draw(img), console.log((Date.now()-t)/1000), toggleLoading()}
   }
 
@@ -240,9 +242,6 @@
 
   const draw = (img) =>
   {
-  // Calling regl() creates a new partially evaluated draw command
-  let gl = reglCanvas.getContext('webgl', {preserveDrawingBuffer: true})
-  var regl = createREGL(gl)
   //var original_texture = regl.texture(img)
   try {//FIXME instead of failing I shoudl downscale the image!!!
   var new_texture = regl.texture(img)
@@ -266,7 +265,7 @@
   
     // Shaders in regl are just strings.  You can use glslify or whatever you want
     // to define them.  No need to manually create shader objects.
-    frag: vertex_shader.get("1/Z"),
+    frag: vertex_shader.get(settings.getValue("Type").value),
   
     vert: `
       precision mediump float;
@@ -317,7 +316,7 @@
   var max_i = 5;//Math.floor(Math.PI*60)
   regl.frame(({time}) => {
     // clear contents of the drawing buffer
-    //patch the GIF.JS to use https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/readPixels
+    //TODO: patch the GIF.JS to use https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/readPixels
     //if ctx is webgl/2
 
     regl.clear({
@@ -325,12 +324,9 @@
       depth: 1
     })
   
-    // draw a triangle using the command defined above
-    col = Math.random();
     crossPattern({
       combine_factor: settings.getValue("Strength"),//parseFloat(document.getElementById("combineRangeInput").value),
       u_resolution: [reglCanvas.width, reglCanvas.height], //not 100% correct
-      color: [ col, col, col, 1 ],
       rotation_factor: to_rad(current_rotation + base_rotation),
       pan_factor: (current_panning),
       scale_factor: current_scale, //current_scale.map(x => {return x*x}) //really bad idea on mobile..
@@ -348,6 +344,13 @@
     }})}
 
 
+
+
+    // Calling regl() creates a new partially evaluated draw command
+    let img = new Image()
+    let gl = reglCanvas.getContext('webgl', {preserveDrawingBuffer: true})
+    var regl = createREGL(gl)
+
     QuickSettings.useExtStyleSheet()
     var settings = QuickSettings.create(0, 0, "Settings", document.body)
     .setSize("120","")
@@ -356,11 +359,7 @@
         "<label for='imageInput'>Select Image!</label>"+
         "<span id='loadingSpan' hidden>Loading...</span>"
     )
-    .addDropDown("Type", [
-      "Z^-2",
-      "Z^-1",
-      "sqrt(Z)"
-    ], undefined)
+    .addDropDown("Type", Object.keys(vertex_shader.transformer_dict), (e) => {regl = createREGL(gl); draw(img);})
     .addRange("Strength", 0, 1, 1, 0.01, e => {})
     .addNumber("Split Radially", 0, 1/0, 0, 1, e => {})
     .addDropDown("style", [
