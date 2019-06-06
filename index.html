@@ -9,16 +9,22 @@
     <meta charset=utf-8>
     <meta name="Description" content="Tool to play around with conformal mappings and images to create funny pictures and distortions.">
     <meta name="theme-color" content="#FFA500"/>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <link async rel="stylesheet" id="quicksettings_style" href="css/quicksettings.css">
     <link async rel="stylesheet" href="style.css">
+    <script async language="javascript" src="transformer_shaders.js"></script>
     <script language="javascript" src="js/regl.min.js"></script>
-    <script language="javascript" src="transformer_shaders.js"></script>
     <script language="javascript" src="js/quicksettings.min.js"></script>
     <script language="javascript" src="js/hammer.min.js"></script>
     <script language="javascript" src="js/gif.js"></script>
+    <script async language="javascript" src="js/download.js"></script>
   </head>
+
   <body>
+  <!--
+    <body ondrop = e => {e.preventDefault(); e.stopPropagation(); fileSelected(e);}
+  -->
+    
     <noscript><h1>Javascript is required!</h1></noscript>
 
     <canvas id="reglCanvas"> </canvas>
@@ -78,13 +84,16 @@
   });
 
   hammertime.on('pinchmove', function(ev) {
-    current_scale[0] = base_scale[0] * 1/ev.scale
-    current_scale[1] = base_scale[1] * 1/ev.scale
-    console.log(current_scale)
+    current_scale[0] = current_scale[1] = base_scale[0] * 1/ev.scale
+    //current_scale[1] = base_scale[1] * 1/ev.scale
+    //current_panning[0] *= ev.scale
+    //current_panning[1] *= ev.scale
   });
 
   hammertime.on('pinchend', function(ev) {
     base_scale[0] = base_scale[1] *= 1/ev.scale
+    //base_panning[0] *= ev.scale 
+    //base_panning[1] *= ev.scale
     ignore_next_pan = true;
   });
 
@@ -103,7 +112,10 @@
     let change = event.deltaY < 0 ? scroll_wheel_factor : 1/scroll_wheel_factor
     current_scale[0] *= change
     current_scale[1] *= change
-    console.log(current_scale[0])
+    //current_panning[0] /= change/2
+    //current_panning[1] /= change/2
+    //base_panning[0] /= change/2
+    //base_panning[1] /= change/2
   });
 
   var gif = new GIF({workers: 4, quality: 30})
@@ -115,7 +127,7 @@
   gif.on('progress', function(p) {console.log(`${p*100}%`)})
 
 
-  function addGifFrame(dt, regl){
+  function buffer_to_canvas(){
     var width = reglCanvas.width
     var height = reglCanvas.height
     var data = regl.read({//This requires preserveDrawingBuffer and is thus pretty slow. Should figure out correct way! maybe use regl._gl
@@ -132,7 +144,16 @@
     var imageData = context.createImageData(width, height)
     imageData.data.set(data);
     context.putImageData(imageData, 0, 0)
-    gif.addFrame(canv2d, {copy: true, delay: dt})
+    return canv2d
+  }
+
+  function addGifFrame(dt, regl){
+    gif.addFrame(buffer_to_ctx(), {copy: true, delay: dt})
+  }
+
+  function download_buffer(){
+    var buffer_image = buffer_to_canvas().toDataURL()
+    download(buffer_image, opened_image_name.split(".")[0]+"_conformal_mapped.png");//TODO add original filename?
   }
 
   const fileSelected = function(e) {
@@ -140,6 +161,7 @@
       const file = e.target.files[0]
       img = new Image()
       let reader = new FileReader()
+      opened_image_name = file.name
 
       reader.readAsDataURL(file)
       reader.onload = e => {img.src = e.target.result}
@@ -275,12 +297,11 @@
     }})}
 
 
-
-
     // Calling regl() creates a new partially evaluated draw command
     let img = new Image()
     let gl = reglCanvas.getContext('webgl', {preserveDrawingBuffer: true})
     var regl = createREGL(gl)
+    var opened_image_name = ""
 
     QuickSettings.useExtStyleSheet()
     var settings = QuickSettings.create(0, 0, "Settings", document.body)
@@ -294,6 +315,7 @@
     .addRange("Strength", 0, 1, 1, 0.01, e => {})
     .addNumber("Split Radially", 0, 1/0, 0, 1, e => {})
     .addButton("Reset Zoom", () => {base_scale = [1,1]; current_scale = [1,1]; base_panning = [0,0]; current_panning = [0,0]})
+    .addButton("Save Image", () => {download_buffer()})
     .addDropDown("style", [
           "default",
 					"white",
@@ -303,15 +325,14 @@
         ], change_style)
     
     change_style({"value":"white"})
-    //window.onblur = ()=> {settings.saveInLocalStorage("settings");}
+
 //}
 
-
 //offline service worker stuff
-if('serviceWorker' in navigator) {
-  navigator.serviceWorker
-           .register('js/offline_worker.js')
-           .then(function() { console.log("Service Worker Registered"); });
-}
+//if('serviceWorker' in navigator) {
+  //navigator.serviceWorker
+           //.register('offline_worker.js')
+           //.then(function() { console.log("Service Worker Registered"); });
+//}
 </script>
 </html>
