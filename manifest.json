@@ -3,12 +3,12 @@
   "name": "Image Transformer",
   "icons": [
     {
-      "src": "icon_small.png",
+      "src": "img/icon_small.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "icon.png",
+      "src": "img/icon.png",
       "type": "image/png",
       "sizes": "512x512"
     }

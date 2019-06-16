@@ -108,7 +108,7 @@ void main() {
   final_coord = COORD_CALCULATION;
 
   if(radial_splits > 0.)
-    final_coord = phi_mod(final_coord, PI/radial_splits);
+    final_coord = phi_mod(final_coord, PI*2./radial_splits);
 
   //rotate the final_coords according to the rotation_factor
   //final_coord = rotate(final_coord, rotation_factor);
