@@ -28,6 +28,7 @@ self.addEventListener('install', function(event) {
 });
 
 
+//FIXME rewrite
 var fetcher = async event =>
 {
 	console.log('Fetch event for ', event.request.url);
@@ -36,16 +37,15 @@ var fetcher = async event =>
 			.match(event.request)
 			.then(response => {
 				if (response) {
-					console.log('Found ', event.request.url, ' in cache');
+					//console.log('Found ', event.request.url, ' in cache');
 					return response;
 				}
-				console.log('Network request for ', event.request.url);
+				//console.log('Network request for ', event.request.url);
 				return (
 					fetch(event.request)
 						.then(response => {
 							return caches.open(staticCacheName).then(cache => {
                 cache.put(event.request.url, response.clone());
-                console.log(cache);
 								return response;
 							});
 						})
