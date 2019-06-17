@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#FFA500"/>
     <link rel="manifest" href="manifest.json">
     <link rel="shortcut icon" href="img/icon.png">
-    <link async rel="stylesheet" id="quicksettings_style" href="css/quicksettings.css">
+    <link async rel="stylesheet" id="quicksettings_style" href="css/quicksettings_default.css">
     <link async rel="stylesheet" href="style.css">
     <script language="javascript" src="transformer_shaders.js"></script>
     <script language="javascript" src="js/regl.min.js"></script>
@@ -323,10 +323,10 @@
 //}
 
 //offline service worker stuff
-//if('serviceWorker' in navigator) {
-  //navigator.serviceWorker
-           //.register('offline_worker.js')
-           //.then(function() { console.log("Service Worker Registered"); });
-//}
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker
+           .register('./offline_worker.js')
+           .then(function() { console.log("Service Worker Registered"); });
+}
 </script>
 </html>

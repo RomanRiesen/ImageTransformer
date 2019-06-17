@@ -16,7 +16,7 @@
   "start_url": "/",
   "background_color": "#FFFFFF",
   "display": "standalone",
-  "scope": "/ImageTransformer/",
+  "scope": "",
   "theme_color": "#FFA500",
   "optional_permissions":"downloads"
 }
