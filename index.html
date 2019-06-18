@@ -310,7 +310,7 @@ window.onload = function() {
     .addNumber("Radial Symmetry", 1, 1/0, 0, 1, e => {})
     .addButton("Reset Zoom", () => {base_scale = [1,1]; current_scale = [1,1]; base_panning = [0,0]; current_panning = [0,0]})
     .addButton("Save Image", () => {download_buffer()})
-    .addDropDown("style", [
+    .addDropDown("Style", [
           "default",
 					"white",
 					"black",
@@ -319,7 +319,13 @@ window.onload = function() {
         ], change_style)
     
     change_style({"value":"default"})
+    settings.hideTitle("File");
     console.log(settings)
+    var settings_hidden = false;
+    document.getElementsByClassName("qs_title_bar")[0].ontouchend = e => {
+      settings_hidden ? settings._content.style.display = "inherit" : settings._content.style.display = "none";
+      settings_hidden = !settings_hidden;
+    }
 
 
 

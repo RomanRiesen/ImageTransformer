@@ -28,7 +28,7 @@ self.addEventListener('install', function(event) {
 });
 
 
-//FIXME rewrite
+//FIXME rewrite also FIXME should always fetch and only on fetch fail load from cache
 var fetcher = async event =>
 {
 	console.log('Fetch event for ', event.request.url);
@@ -48,7 +48,10 @@ var fetcher = async event =>
                 cache.put(event.request.url, response.clone());
 								return response;
 							});
-						})
+            })
+            .catch(error => {
+              //FIXME return file from cache
+            })
 				);
 			})
 			.catch(error => {
