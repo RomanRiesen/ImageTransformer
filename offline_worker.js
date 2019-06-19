@@ -42,7 +42,7 @@ self.addEventListener('fetch', function(event) {
       })
       .catch(function(err) {
           // Fallback to cache
-          return caches.match(event.request);
+          return caches.match(event.request.url);
       })
   );
 });
