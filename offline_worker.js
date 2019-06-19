@@ -1,5 +1,5 @@
 //FIXME this is really, really stupid and bad, but good enough for now. Should be part of the build process.
-const staticCacheName = "imageTransformer";
+const cache_name = "imageTransformer";
 const files_to_cache = [
 	'css/quicksettings_default.css',
 	'css/quicksettings_black.css',
@@ -28,45 +28,30 @@ self.addEventListener('install', function(event) {
 });
 
 
-//FIXME rewrite also FIXME should always fetch and only on fetch fail load from cache
-var fetcher = async event =>
-{
-	console.log('Fetch event for ', event.request.url);
-	event.respondWith(
-		caches
-			.match(event.request)
-			.then(response => {
-				if (response) {
-					//console.log('Found ', event.request.url, ' in cache');
-					return response;
-				}
-				//console.log('Network request for ', event.request.url);
-				return (
-					fetch(event.request)
-						.then(response => {
-							return caches.open(staticCacheName).then(cache => {
-                cache.put(event.request.url, response.clone());
-								return response;
-							});
-            })
-            .catch(error => {
-              //FIXME return file from cache
-            })
-				);
-			})
-			.catch(error => {
-			  // TODO 6 - Respond with custom offline page
-			})
-	);
-}
-
-self.addEventListener('fetch', fetcher);
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    // Try the network
+    fetch(event.request)
+      .then(function(res) {
+        return caches.open(cache_name)
+          .then(function(cache) {
+            // Put in cache if succeeds
+            cache.put(event.request.url, res.clone());
+            return res;
+          })
+      })
+      .catch(function(err) {
+          // Fallback to cache
+          return caches.match(event.request);
+      })
+  );
+});
 
 
 self.addEventListener('activate', event => {
   console.log('Activating new service worker...');
 
-  const cacheWhitelist = [staticCacheName];
+  const cacheWhitelist = [cache_name];
 
   event.waitUntil(
     caches.keys().then(cacheNames => {

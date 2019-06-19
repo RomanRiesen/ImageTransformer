@@ -7,6 +7,7 @@ let vertex_shader = {
 
     _base: "",
 
+    //mapping from human readable to executable formulas
     transformer_dict: {
         "1/Z":"one_over_z(coord)",
         "1/Z^2":"one_over_z_squared(coord)",
