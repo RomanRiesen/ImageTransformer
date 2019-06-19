@@ -15,10 +15,10 @@
     <link async rel="stylesheet" href="style.css">
     <script language="javascript" src="js/quicksettings.min.js"></script>
     <script language="javascript" src="transformer_shaders.js"></script>
-    <script async language="javascript" src="js/regl.min.js"></script>
-    <script async language="javascript" src="js/hammer.min.js"></script>
-    <script async language="javascript" src="js/gif.js"></script>
-    <script async language="javascript" src="js/download.js"></script>
+    <script defer language="javascript" src="js/regl.min.js"></script>
+    <script defer language="javascript" src="js/hammer.min.js"></script>
+    <script defer language="javascript" src="js/gif.js"></script>
+    <script defer language="javascript" src="js/download.js"></script>
   </head>
 
   <body>
@@ -45,7 +45,7 @@ let base_rotation = 0
 let current_panning = [0,0] 
 let base_panning = [0,0] 
 
-let draw //later gets filled in. super weird and quite bad...
+let draw = ()=>{}//later gets filled in. super weird and quite bad...
 
 
 window.onload = function() {
@@ -330,11 +330,14 @@ var settings = QuickSettings.create(0, 0, "Settings", document.body)
     
 change_style({"value":"default"})
 settings.hideTitle("File");
+
 console.log(settings)
-var settings_hidden = false;
+
+//var settings_hidden = false;
 document.getElementsByClassName("qs_title_bar")[0].ontouchend = e => {
-  settings_hidden ? settings._content.style.display = "inherit" : settings._content.style.display = "none";
-  settings_hidden = !settings_hidden;
+  settings._doubleClickTitle();
+  //settings_hidden ? settings._content.style.display = "inherit" : settings._content.style.display = "none";
+  //settings_hidden = !settings_hidden;
 }
 
 //offline service worker stuff
