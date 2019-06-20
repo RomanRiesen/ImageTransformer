@@ -133,7 +133,6 @@ window.onload = function() {
   gif.on('progress', function(p) {console.log(`${p*100}%`)})
 
 
-
   function addGifFrame(dt, regl){
     gif.addFrame(buffer_to_ctx(), {copy: true, delay: dt})
   }
@@ -162,7 +161,6 @@ window.onload = function() {
 
 
   const crossPattern = regl({
-  
     // Shaders in regl are just strings.  You can use glslify or whatever you want
     // to define them.  No need to manually create shader objects.
     frag: vertex_shader.get(settings.getValue("Type").value),
