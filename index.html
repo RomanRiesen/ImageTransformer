@@ -253,7 +253,7 @@ window.onload = function() {
       rotation_factor: to_rad(current_rotation + base_rotation),
       pan_factor: (current_panning),
       scale_factor: current_scale, //current_scale.map(x => {return x*x}) //really bad idea on mobile..
-      radial_splits: settings.getValue("Radial Symmetry")
+      radial_splits: settings.getValue("Radial Symm.")
     })
 
     if (to_gif && i++ < max_i && (i%2 == 0 && !fps60Gif || fps60Gif))
@@ -317,8 +317,8 @@ var settings = QuickSettings.create(0, 0, "Settings", document.body)
     "<span id='loadingSpan' hidden>Loading...</span>"
 )
   .addDropDown("Type", Object.keys(vertex_shader.transformer_dict), (e) => {draw(img);})
+  .addNumber("Radial Symm.", 1, 1/0, 0, 1, e => {})
   .addRange("Strength", 0, 1, 1, 0.01, e => {})
-  .addNumber("Radial Symmetry", 1, 1/0, 0, 1, e => {})
   .addButton("Reset Zoom", () => {base_scale = [1,1]; current_scale = [1,1]; base_panning = [0,0]; current_panning = [0,0]})
   .addButton("Save Image", () => {download_buffer()})
   .addDropDown("Style", [
@@ -331,15 +331,20 @@ var settings = QuickSettings.create(0, 0, "Settings", document.body)
     
 change_style({"value":"default"})
 settings.hideTitle("File");
+settings.hideTitle("Type");
+
 
 console.log(settings)
 
 //var settings_hidden = false;
 document.getElementsByClassName("qs_title_bar")[0].ontouchend = e => {
   settings._doubleClickTitle();
+  //settings.collapse()
   //settings_hidden ? settings._content.style.display = "inherit" : settings._content.style.display = "none";
   //settings_hidden = !settings_hidden;
 }
+
+
 
 //offline service worker stuff
 if('serviceWorker' in navigator) {
