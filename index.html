@@ -47,6 +47,7 @@ let current_panning = [0,0]
 let base_panning = [0,0] 
 
 let draw = ()=>{}//later gets filled in. super weird and quite bad...
+let regl
 
 
 window.onload = function() {
@@ -132,33 +133,9 @@ window.onload = function() {
   gif.on('progress', function(p) {console.log(`${p*100}%`)})
 
 
-  function buffer_to_canvas(){
-    var width = reglCanvas.width
-    var height = reglCanvas.height
-    var data = regl.read({//This requires preserveDrawingBuffer and is thus pretty slow. Should figure out correct way! maybe use regl._gl
-      x: 0,
-      y: 0,
-      width: width,
-      height: height,
-      data: new Uint8Array(width*height*4)
-    })
-    var canv2d = document.getElementById('gifCanvas')
-    var context = canv2d.getContext('2d')
-    canv2d.width = width
-    canv2d.height = height
-    var imageData = context.createImageData(width, height)
-    imageData.data.set(data);
-    context.putImageData(imageData, 0, 0)
-    return canv2d
-  }
 
   function addGifFrame(dt, regl){
     gif.addFrame(buffer_to_ctx(), {copy: true, delay: dt})
-  }
-
-  function download_buffer(){
-    var buffer_image = buffer_to_canvas().toDataURL()
-    download(buffer_image, opened_image_name.split(".")[0]+"_conformal_mapped.png");//TODO add original filename?
   }
 
   draw = (img) =>
@@ -270,14 +247,37 @@ window.onload = function() {
     // Calling regl() creates a new partially evaluated draw command
     let img = new Image()
     let gl = reglCanvas.getContext('webgl', {preserveDrawingBuffer: true})
-    var regl = createREGL(gl)
+    regl = createREGL(gl)
     var opened_image_name = ""
 
 }
 
 
 
-//QuickSettings stuff
+function buffer_to_canvas(){
+  var width = reglCanvas.width
+  var height = reglCanvas.height
+  var data = regl.read({//This requires preserveDrawingBuffer and is thus pretty slow. Should figure out correct way! maybe use regl._gl
+    x: 0,
+    y: 0,
+    width: width,
+    height: height,
+    data: new Uint8Array(width*height*4)
+  })
+  var canv2d = document.getElementById('gifCanvas')
+  var context = canv2d.getContext('2d')
+  canv2d.width = width
+  canv2d.height = height
+  var imageData = context.createImageData(width, height)
+  imageData.data.set(data);
+  context.putImageData(imageData, 0, 0)
+  return canv2d
+}
+
+function download_buffer(){
+  var buffer_image = buffer_to_canvas().toDataURL()
+  download(buffer_image, opened_image_name.split(".")[0]+"_conformal_mapped.png");//TODO add original filename?
+}
 
 const change_style = e =>
 {
@@ -308,6 +308,7 @@ const fileSelected = function(e) {
     img.onload = ()=>{draw(img), console.log((Date.now()-t)/1000), toggleLoading()}
 }
 
+//QuickSettings stuff
 QuickSettings.useExtStyleSheet()
 var settings = QuickSettings.create(0, 0, "Settings", document.body)
 //.setGlobalChangeHandler(()=>(settings.saveInLocalStorage("settings")))
