@@ -77,16 +77,19 @@ window.onload = function() {
 
   hammertime.on('pan', function(ev) {
     if(ignore_next_pan) return;
-    d = ev.distance
-    current_panning[0] = base_panning[0]+Math.cos(to_rad(ev.angle))*d
-    current_panning[1] = base_panning[1]-Math.sin(to_rad(ev.angle))*d
+    const d = ev.distance
+    //console.log("pan distance: " + d)
+    const scale = current_scale[0];
+    current_panning[0] = base_panning[0]+Math.cos(to_rad(ev.angle))*d*scale
+    current_panning[1] = base_panning[1]-Math.sin(to_rad(ev.angle))*d*scale
   });
 
   hammertime.on('panend', function(ev) {
     if(ignore_next_pan) {ignore_next_pan = false; return;}
-    d = ev.distance
-    base_panning[0] += Math.cos(to_rad(ev.angle))*d
-    base_panning[1] -= Math.sin(to_rad(ev.angle))*d
+    const d = ev.distance
+    const scale = current_scale[0];
+    base_panning[0] += Math.cos(to_rad(ev.angle))*d*scale
+    base_panning[1] -= Math.sin(to_rad(ev.angle))*d*scale
   });
 
   hammertime.on('pinchmove', function(ev) {
@@ -118,10 +121,6 @@ window.onload = function() {
     let change = event.deltaY < 0 ? scroll_wheel_factor : 1/scroll_wheel_factor
     current_scale[0] *= change
     current_scale[1] *= change
-    //current_panning[0] /= change/2
-    //current_panning[1] /= change/2
-    //base_panning[0] /= change/2
-    //base_panning[1] /= change/2
   });
 
   var gif = new GIF({workers: 4, quality: 30})
@@ -152,12 +151,11 @@ window.onload = function() {
   } catch (e) {
     let max_texture_size = (gl.getParameter(gl.MAX_TEXTURE_SIZE))
     alert(
-        "Maximal supported image size on this device is"+
+        "Maximal supported image size on this device is "+
         `${max_texture_size}x${max_texture_size}.\n`+
         `Your image has size ${img.height}x${img.width}.\n Sorry. Try on a PC.`
       )
   }
-  //FIXME should set the canvas height/width ratio equal to the one of the loaded image.
 
 
   const crossPattern = regl({
@@ -277,7 +275,7 @@ function download_buffer(){
   download(buffer_image, opened_image_name.split(".")[0]+"_conformal_mapped.png");//TODO add original filename?
 }
 
-const change_style = e =>
+function change_style(e)
 {
   var styleTag = document.getElementById("quicksettings_style");
     styleTag.href = "css/quicksettings_" + e.value + ".css";
@@ -289,11 +287,11 @@ const change_style = e =>
       settings.setSize("120","")
 }
 
-const toggleLoading = function(){
+function toggleLoading () {
     document.getElementById("loadingSpan").toggleAttribute("hidden")
 }
 
-const fileSelected = function(e) {
+function fileSelected(e) {
     const t = Date.now()
     const file = e.target.files[0]
     img = new Image()
@@ -335,14 +333,9 @@ settings.hideTitle("Type");
 
 console.log(settings)
 
-//var settings_hidden = false;
 document.getElementsByClassName("qs_title_bar")[0].ontouchend = e => {
   settings._doubleClickTitle();
-  //settings.collapse()
-  //settings_hidden ? settings._content.style.display = "inherit" : settings._content.style.display = "none";
-  //settings_hidden = !settings_hidden;
 }
-
 
 
 //offline service worker stuff

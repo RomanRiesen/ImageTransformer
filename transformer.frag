@@ -15,12 +15,11 @@ const float PI = 3.1415926534;
 
 //Normalize pan_factor (FIXME maybe do in js part, as is only required once per frame....)
 vec2 pan = vec2 (pan_factor.x / u_resolution.x,
-                        pan_factor.y / u_resolution.y);
+                 pan_factor.y / u_resolution.y);
 
 float random (vec2 st) {
   return fract(sin(dot(st.xy,
-      vec2(12.9898,78.233)))*
-    43758.5453123);
+      vec2(12.9898,78.233)))*43758.5453123);
   }
 
 //FIXME more operations and should be normal functions!!
@@ -90,33 +89,26 @@ vec2 one_over_z_squared (vec2 v) {
   return divide(vec2(1,0), v2);
 } 
 
+vec2 coord_trans(vec2 z) {
+    return COORD_CALCULATION;
+  }
+
 void main() {
-  //vec2 myUv = vec2 (uv.x, uv.y + combineFactor*0.1);
-  vec2 pan_coord = pan+uv;
-  pan_coord *= scale_factor;
-  vec2 coord = pan_coord; //rotate(pan_coord, combineFactor*0.1);
-  vec2 final_coord = coord;
 
-  //vec2 final_coord = product(coord, coord)
-  //+ vec2(mod(-combineFactor/2., 2.*3.14*10.), 0);
-  //+ vec2(mod(-1./2., 2.*3.14*10.), 0);
+  vec2 coord = ((uv-vec2(0.5,0.5))*scale_factor + pan);
 
-  //final_coord = one_over_z(coord);
-  //final_coord = nth_root(divide(vec2(2,0), coord), 2.);
-  //vec2 pol = to_polar(one_over_z(coord));
-  //pol.y = mod(pol.y, PI/(pow(2., combineFactor/50.)));
-  final_coord = COORD_CALCULATION;
+  vec2 final_coord = coord_trans(coord);//gets replaced with actual function in transformer_shaders.js
 
   if(radial_splits > 0.)
     final_coord = phi_mod(final_coord, PI*2./radial_splits);
-
+  
   //rotate the final_coords according to the rotation_factor
   //final_coord = rotate(final_coord, rotation_factor);
   //final_coord = from_polar(to_polar(coord)); //FIXME 
   //final_coord = coord;
   //final_coord = rotate(final_coord, -combineFactor*0.2);//vec2(pan_coord.x*pan_coord.x, pan_coord.y*pan_coord.y);
 
-  final_coord = mix(pan_coord, final_coord, combine_factor);//FIXME I don\t think this is what I want to do here...
+  final_coord = mix(coord, final_coord, combine_factor);//FIXME I don\t think this is what I want to do here...
   gl_FragColor = texture2D(texture_const,
       vec2(
         mod(final_coord.x, 1.),
