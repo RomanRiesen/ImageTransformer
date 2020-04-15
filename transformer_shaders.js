@@ -13,7 +13,8 @@ let vertex_shader = {
         "1/Z^2":"one_over_z_squared(z)",
         "sqrt(2/Z)":"nth_root(divide(vec2(2,0), z), 2.)",
         "cos(Z)":"cosC(z)",
-        //"sin(Z)":"sinC(coord)",
+        //"sin(Z)":"sinC(z)",
+        "sqrt(z)*sqrt(2)":"nth_root(z, 2.)*pow(2., 0.5)",
         "id":"(z)",
     },
 

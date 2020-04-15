@@ -18,7 +18,7 @@ const float PI = 3.1415926534;
 vec2 pan = vec2 (pan_factor.x / u_resolution.x,
                  pan_factor.y / u_resolution.y);
 
-float random (vec2 st) {
+float random (const vec2 st) {
   return fract(sin(dot(st.xy,
       vec2(12.9898,78.233)))*43758.5453123);
 }
@@ -41,40 +41,37 @@ vec2 divide(const vec2 a, const vec2 b) {
     (a.y*b.x-a.x*b.y)/absolute(b));
 }
 
-vec2 to_polar(vec2 v) {
+vec2 to_polar(const vec2 v) {
   float r = sqrt(absolute(v));
   float phi = atan(v.y, v.x);
   return vec2(r, phi);
 }
 
-vec2 from_polar(vec2 pol) {
+vec2 from_polar(const vec2 pol) {
   vec2 ret;
   ret.x = cos(pol.y);
   ret.y = sin(pol.y);
   return ret*pol.x;
 }
 
-vec2 expi(vec2 c) {
-  return vec2(cos(c.x), sin(c.x))*-exp(c.y);
+vec2 expi(const vec2 c) {
+  //e^z = e^x*e^(iy) = e^x*(cos(y) + i*sin(y))
+  return exp(c.x)*vec2(cos(c.y), sin(c.y));
 }
 
-vec2 expC(vec2 c) {
+vec2 expC(const vec2 c) {
   return expi(divide(c, vec2(0,1)));
 }
 
-vec2 sinC(vec2 c) {
-  vec2 res;
-  res = expi(c) - expi(-c);
-  return divide(res, vec2(0, 2));
+vec2 sinC(const vec2 c) {
+  return divide(expi(c) - expi(-c), vec2(0, 2));
 }
 
-vec2 cosC(vec2 c) {
-  vec2 res;
-  res = expi(c) + expi(-c);
-  return divide(res, vec2(2, 0));
+vec2 cosC(const vec2 c) {
+  return divide(expi(c) + expi(-c), vec2(2, 0));
 }
 
-vec2 rotate(vec2 v, float a) {
+vec2 rotate(const vec2 v, const float a) {
   return vec2(
     cos(a)*v.x - sin(a)*v.y,
     sin(a)*v.x + cos(a)*v.y
@@ -82,28 +79,28 @@ vec2 rotate(vec2 v, float a) {
 }
 
 //TODO
-vec2 nth_root (vec2 v, float n) {
+vec2 nth_root (const vec2 v, const float n) {
   vec2 pol = to_polar(v);
-  v.y = pow(v.y, 1./n);
-  return from_polar(v);
+  vec2 t = vec2(pow(v.x, 1./n), v.y/n);
+  return from_polar(t);
 }
 
-vec2 phi_mod (vec2 v, float phi) {
+vec2 phi_mod (const vec2 v, const float phi) {
   vec2 pol = to_polar(v);
   pol.y = mod(pol.y, phi);
   return from_polar(pol);
 }
 
-vec2 one_over_z (vec2 v) {
+vec2 one_over_z (const vec2 v) {
   return divide(vec2(1,0), v);
 } 
 
-vec2 one_over_z_squared (vec2 v) {
+vec2 one_over_z_squared (const vec2 v) {
   vec2 v2 = v*v;
   return divide(vec2(1,0), v2);
 } 
 
-vec2 coord_trans(vec2 z) {
+vec2 coord_trans(const vec2 z) {
     return COORD_CALCULATION;
   }
 
