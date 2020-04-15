@@ -13,22 +13,36 @@ varying vec2 uv;
 const float E = 2.7182818284;
 const float PI = 3.1415926534;
 
-//Normalize pan_factor (FIXME maybe do in js part, as is only required once per frame....)
+//Normalize pan_factor (FIXME maybe do in js part, as this is only required once per frame....)
+//Can be made const/in in newer webgl versions. But does not work on chrome on linux as of the 10.4.20.
 vec2 pan = vec2 (pan_factor.x / u_resolution.x,
                  pan_factor.y / u_resolution.y);
 
 float random (vec2 st) {
   return fract(sin(dot(st.xy,
       vec2(12.9898,78.233)))*43758.5453123);
-  }
+}
 
-//FIXME more operations and should be normal functions!!
-#define product(a, b) vec2(a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x)
-#define conjugate(a) vec2(a.x,-a.y)
-#define divide(a, b) vec2(((a.x*b.x+a.y*b.y)/(b.x*b.x+b.y*b.y)),((a.y*b.x-a.x*b.y)/(b.x*b.x+b.y*b.y)))
+float absolute(const vec2 v) {
+  return v.x*v.x+v.y*v.y;
+}
+
+vec2 product(const vec2 a, const vec2 b) {
+  return vec2(a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x);
+}
+
+vec2 conjugate(const vec2 a) {
+  return vec2(a.x,-a.y);
+}
+
+vec2 divide(const vec2 a, const vec2 b) {
+  return vec2(
+    (a.x*b.x+a.y*b.y)/absolute(b),
+    (a.y*b.x-a.x*b.y)/absolute(b));
+}
 
 vec2 to_polar(vec2 v) {
-  float r = sqrt(v.x*v.x + v.y*v.y);
+  float r = sqrt(absolute(v));
   float phi = atan(v.y, v.x);
   return vec2(r, phi);
 }
@@ -99,15 +113,9 @@ void main() {
 
   vec2 final_coord = coord_trans(coord);//gets replaced with actual function in transformer_shaders.js
 
-  if(radial_splits > 0.)
+  if(radial_splits > 1.)
     final_coord = phi_mod(final_coord, PI*2./radial_splits);
   
-  //rotate the final_coords according to the rotation_factor
-  //final_coord = rotate(final_coord, rotation_factor);
-  //final_coord = from_polar(to_polar(coord)); //FIXME 
-  //final_coord = coord;
-  //final_coord = rotate(final_coord, -combineFactor*0.2);//vec2(pan_coord.x*pan_coord.x, pan_coord.y*pan_coord.y);
-
   final_coord = mix(coord, final_coord, combine_factor);//FIXME I don\t think this is what I want to do here...
   gl_FragColor = texture2D(texture_const,
       vec2(
