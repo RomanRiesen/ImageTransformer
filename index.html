@@ -34,7 +34,7 @@
 
   <canvas id="reglCanvas"> </canvas>
   <canvas id="gifCanvas" hidden> </canvas>
-  <img id="gifResult" alt="you should not be seeing this."></img>
+  <img id="gifResult" hidden alt="you should not be seeing this."></img>
 </body>
 
 <script language="javascript">
@@ -48,7 +48,7 @@
   let current_panning = [0, 0]
   let base_panning = [0, 0]
 
-  let support_gif_creation = false;
+  //let support_gif_creation = false;//Should use this and create a second regl instance if image is saved.
 
   let draw = () => { }//declare function, defined later
   let regl = new Object()
@@ -193,7 +193,7 @@
 
 
       var fps60Gif = false;
-      var to_gif = support_gif_creation;
+      var to_gif = false;
       var i = 0
       var max_i = 5;//Math.floor(Math.PI*60)
       regl.frame(({ time }) => {
@@ -228,7 +228,7 @@
 
     // Calling regl() creates a new partially evaluated draw command
     let img = new Image()
-    let gl = reglCanvas.getContext('webgl', { preserveDrawingBuffer: support_gif_creation })
+    let gl = reglCanvas.getContext('webgl', { preserveDrawingBuffer: true })
     try {
       regl = createREGL(gl)
     } catch (e) { alert(e); }
